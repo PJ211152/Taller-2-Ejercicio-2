@@ -35,6 +35,7 @@ export const CameraComponent = () => {
     useMicrophonePermissions();
   const [isRecording, setIsRecording] = useState(false);
   const [cameraFacing, setCameraFacing] = useState("back");
+  const [flash, setFlash] = useState('off')
   const cameraRef = useRef(null);
 
   MediaLibrary.requestPermissionsAsync();
@@ -92,6 +93,10 @@ export const CameraComponent = () => {
 
   function toggleCameraFacing() {
     setCameraFacing((current) => (current === "back" ? "front" : "back"));
+  }
+
+  function toggleFlash() {
+    setFlash((current) => (current === 'off' ? 'on' : 'off'));
   }
 
   const takePicture = async () => {
@@ -201,7 +206,20 @@ export const CameraComponent = () => {
             style={styles.cameraView}
             facing={cameraFacing}
             ref={cameraRef}
+            flash={flash}
           >
+            <View style={styles.containerCameraButtons2}>
+              <CameraButton
+                icon="retweet"
+                color="#D4D4D4"
+                onPress={toggleCameraFacing}
+              />
+              <CameraButton
+                icon="flash"
+                color={flash === 'off' ? '#B0B0B0' : '#F2FC00'}
+                onPress={toggleFlash}
+              />
+            </View>
             <View style={styles.containerCameraButtons1}>
               <CameraButton
                 icon="circle"
@@ -238,8 +256,21 @@ export const CameraComponent = () => {
             style={styles.cameraView}
             facing={cameraFacing}
             ref={cameraRef}
+            flash={flash}
             mode="video"
           >
+            <View style={styles.containerCameraButtons2}>
+              <CameraButton
+                icon="retweet"
+                color="#D4D4D4"
+                onPress={toggleCameraFacing}
+              />
+              <CameraButton
+                icon="flash"
+                color='red'
+                onPress={() => alert('Flash no disponible en el modo video')}
+              />
+            </View>
             <View style={styles.containerCameraButtons1}>
               <CameraButton
                 icon={isRecording ? "controller-stop" : "controller-record"}
@@ -312,8 +343,15 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     alignSelf: "flex-end",
-    marginLeft: windowWidth * 0.45,
+    marginLeft: windowWidth * 0.1,
     gap: windowWidth * 0.3,
+    marginBottom: 10,
+  },
+  containerCameraButtons2: {
+    display: "flex",
+    flexDirection: "row",
+    alignSelf: 'flex-start',
+    gap: windowWidth * 0.1,
     marginBottom: 10,
   },
   buttonPermission: {
@@ -369,6 +407,6 @@ const styles = StyleSheet.create({
   cameraView: {
     display: "flex",
     flexGrow: 1,
-    flexDirection: "row",
+    flexDirection: "row"
   },
 });
