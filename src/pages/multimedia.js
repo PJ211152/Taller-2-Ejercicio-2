@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import * as MediaLibrary from "expo-media-library";
 import { Video } from "expo-av";
+import * as Location from "expo-location";
 import {
   Button,
   StyleSheet,
@@ -21,6 +22,7 @@ import {
   Camera,
   useMicrophonePermissions,
 } from "expo-camera";
+import { getLocation } from "../modules/location.js";
 import CameraButton from "../components/cameraButtons.js";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
@@ -35,10 +37,16 @@ export const CameraComponent = () => {
     useMicrophonePermissions();
   const [isRecording, setIsRecording] = useState(false);
   const [cameraFacing, setCameraFacing] = useState("back");
-  const [flash, setFlash] = useState('off')
+  const [flash, setFlash] = useState("off");
   const cameraRef = useRef(null);
+  const [location, setLocation] = useState(null);
 
   MediaLibrary.requestPermissionsAsync();
+
+  const getActualLocation = async () => {
+    const actualLocation = await getLocation();
+    setLocation(actualLocation);
+  };
 
   if (!hasPermission) {
     return <View />;
@@ -67,6 +75,7 @@ export const CameraComponent = () => {
   }
 
   function handleOpenCamera() {
+    getActualLocation();
     setIsCameraVisible(true);
   }
   function handleCloseCamera() {
@@ -74,6 +83,7 @@ export const CameraComponent = () => {
   }
 
   function handleOpenVideoCamera() {
+    getActualLocation();
     setIsVideoCameraVisible(true);
   }
   function handleCloseVideoCamera() {
@@ -96,7 +106,7 @@ export const CameraComponent = () => {
   }
 
   function toggleFlash() {
-    setFlash((current) => (current === 'off' ? 'on' : 'off'));
+    setFlash((current) => (current === "off" ? "on" : "off"));
   }
 
   const takePicture = async () => {
@@ -141,13 +151,26 @@ export const CameraComponent = () => {
       try {
         const picture = await MediaLibrary.createAssetAsync(image);
         alert("Imagen guardada");
-        console.log(picture.uri);
-        console.log(text);
+        console.log(location);
+        const latitude = location.coords.latitude;
+        const longitude = location.coords.longitude;
+
+        const coordinates = { latitude, longitude };
+        const address = await Location.reverseGeocodeAsync(coordinates);
+        console.log(coordinates);
+        console.log(address[0]);
+        console.log(`${address[0].formattedAddress}`);
+        const actualAddress = `${address[0].formattedAddress}`;
 
         const newImage = {
           token: picture.uri,
           comm: text,
+          latitude: latitude,
+          longitude: longitude,
+          address: actualAddress,
         };
+
+        console.log(newImage);
 
         let Images = await AsyncStorage.getItem("Image");
 
@@ -171,12 +194,24 @@ export const CameraComponent = () => {
     if (video) {
       try {
         const record = await MediaLibrary.createAssetAsync(video.uri);
-        console.log(record.uri);
         alert("Video guardado con exito");
+
+        const latitude = location.coords.latitude;
+        const longitude = location.coords.longitude;
+
+        const coordinates = { latitude, longitude };
+        const address = await Location.reverseGeocodeAsync(coordinates);
+        console.log(coordinates);
+        console.log(address[0]);
+        console.log(`${address[0].formattedAddress}`);
+        const actualAddress = `${address[0].formattedAddress}`;
 
         const newVideo = {
           token: record.uri,
           comm: text,
+          latitude: latitude,
+          longitude: longitude,
+          address: actualAddress,
         };
 
         let videos = await AsyncStorage.getItem("Video");
@@ -216,7 +251,7 @@ export const CameraComponent = () => {
               />
               <CameraButton
                 icon="flash"
-                color={flash === 'off' ? '#B0B0B0' : '#F2FC00'}
+                color={flash === "off" ? "#B0B0B0" : "#F2FC00"}
                 onPress={toggleFlash}
               />
             </View>
@@ -267,8 +302,8 @@ export const CameraComponent = () => {
               />
               <CameraButton
                 icon="flash"
-                color='red'
-                onPress={() => alert('Flash no disponible en el modo video')}
+                color="red"
+                onPress={() => alert("Flash no disponible en el modo video")}
               />
             </View>
             <View style={styles.containerCameraButtons1}>
@@ -350,7 +385,7 @@ const styles = StyleSheet.create({
   containerCameraButtons2: {
     display: "flex",
     flexDirection: "row",
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     gap: windowWidth * 0.1,
     marginBottom: 10,
   },
@@ -407,6 +442,6 @@ const styles = StyleSheet.create({
   cameraView: {
     display: "flex",
     flexGrow: 1,
-    flexDirection: "row"
+    flexDirection: "row",
   },
 });

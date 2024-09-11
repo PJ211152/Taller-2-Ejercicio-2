@@ -12,9 +12,12 @@ import {
   TextInput,
 } from "react-native";
 import { Video } from "expo-av";
+import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CameraButton from "./cameraButtons";
 import Entypo from "@expo/vector-icons/Entypo";
+import MapView, { Marker } from "react-native-maps";
+import { getAdress } from "../modules/location.js"
 
 export default function ListComponent() {
   const [dataArray, setDataArray] = useState([]);
@@ -22,11 +25,14 @@ export default function ListComponent() {
   const [image, setImage] = useState(null);
   const [video, setVideo] = useState(null);
   const [description, setDescription] = useState("");
-  const [tempText, setTempText] = useState('');
+  const [tempText, setTempText] = useState("");
   const [tempIndex, setTempIndex] = useState(0);
-  const [tempDesc, setTempDesc] = useState('');
+  const [tempDesc, setTempDesc] = useState("");
+  const [tempLat, setTempLat] = useState(null);
+  const [tempLon, setTempLon] = useState(null);
   const [viewMode, setViewMode] = useState("I");
   const [editVisible, setEditVisible] = useState(false);
+  const [address, setAddress] = useState(null)
 
   async function getImagesFromAsyncStorage() {
     const images = await AsyncStorage.getItem("Image");
@@ -50,19 +56,35 @@ export default function ListComponent() {
     }
   }
 
+  async function seelocation(item) {
+    setTempLat(item.latitude);
+    setTempLon(item.longitude);
+    setAddress(item.address);
+  }
+
+  function closeLocation() {
+    setTempLat(null);
+    setTempLon(null);
+    setAddress(null);
+    
+  }
+
   const open = (item) => {
     setImage(item.token);
     setDescription(item.comm);
-    console.log("presionado", item, image, description);
+    setTempLat(item.latitude);
+    console.log("presionado", item, image, description, tempLat);
   };
 
   const openVideo = (item) => {
     setVideo(item.token);
     setDescription(item.comm);
+    setTempLat(item.latitude);
     console.log("presionado", item, image, description);
   };
 
   function changeCameraMode() {
+    closeLocation();
     setViewMode("I");
     refresh();
     setImage(null);
@@ -71,6 +93,7 @@ export default function ListComponent() {
   }
 
   function changeVideoMode() {
+    closeLocation();
     setViewMode("V");
     refresh();
     setImage(null);
@@ -93,20 +116,20 @@ export default function ListComponent() {
     getVideosFromAsyncStorage();
   }
 
-  function openEditPage(index, descri){
+  function openEditPage(index, descri) {
     setEditVisible(true);
     setTempIndex(index);
     setTempDesc(descri);
     setTempText(descri);
-    console.log(tempDesc, tempIndex)
+    console.log(tempDesc, tempIndex);
   }
 
-  function openEditVideo (index, descri){
+  function openEditVideo(index, descri) {
     setEditVisible(true);
     setTempIndex(index);
     setTempDesc(descri);
     setTempText(descri);
-    console.log(tempDesc, tempIndex)
+    console.log(tempDesc, tempIndex);
   }
 
   async function deleteVideo(index) {
@@ -160,10 +183,10 @@ export default function ListComponent() {
       console.log("Arreglo", array);
 
       await AsyncStorage.setItem("Image", JSON.stringify(array));
-      setTempText('');
+      setTempText("");
       setTempIndex(0);
-      setTempDesc('')
-      setEditVisible(false)
+      setTempDesc("");
+      setEditVisible(false);
       refresh();
     } else {
       console.log("No hay Imagnes Guardadas");
@@ -179,10 +202,10 @@ export default function ListComponent() {
       console.log("Arreglo", array);
 
       await AsyncStorage.setItem("Video", JSON.stringify(array));
-      setTempText('');
+      setTempText("");
       setTempIndex(0);
-      setTempDesc('')
-      setEditVisible(false)
+      setTempDesc("");
+      setEditVisible(false);
       refresh();
     } else {
       console.log("No hay Imagnes Guardadas");
@@ -201,17 +224,39 @@ export default function ListComponent() {
         <View style={style.containerButtons}>
           <CameraButton
             icon="camera"
-            color="black"
+            color={viewMode === "I" ? "#3E51FF" : "black"}
             onPress={changeCameraMode}
           ></CameraButton>
           <CameraButton
             icon="video-camera"
-            color="black"
+            color={viewMode === "V" ? "#3E51FF" : "black"}
             onPress={changeVideoMode}
           ></CameraButton>
         </View>
         {dataArray.length > 0 && viewMode === "I" ? (
-          image != null ? (
+          tempLat !== null && tempLon !== null ? (
+            <>
+              <CameraButton icon="back" color="red" onPress={closeLocation} />
+              <MapView
+                style={style.imagePreview}
+                initialRegion={{
+                  latitude: tempLat,
+                  longitude: tempLon,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: tempLat,
+                    longitude: tempLon,
+                  }}
+                  title={address}
+                  description='Estuviste aqui'
+                />
+              </MapView>
+            </>
+          ) : image != null ? (
             <ImageBackground style={style.imagePreview} source={{ uri: image }}>
               <CameraButton
                 icon="back"
@@ -246,6 +291,29 @@ export default function ListComponent() {
                 </TouchableOpacity>
                 <View style={style.optionButtons}>
                   <TouchableOpacity
+                    style={{ padding: 5, marginLeft: 20, flexDirection: "row" }}
+                    onPress={() => seelocation(item)}
+                  >
+                    <Entypo
+                      name="location"
+                      size={30}
+                      color={
+                        (item.latitude !== null && item.longitude !== null) ||
+                        (item.latitude !== undefined &&
+                          item.longitude !== undefined)
+                          ? "#44FF3E"
+                          : "gray"
+                      }
+                    />
+                    <Text style={{ fontSize: 18, marginRight: 10 }}>
+                      {(item.latitude !== null && item.longitude !== null) ||
+                      (item.latitude !== undefined &&
+                        item.longitude !== undefined)
+                        ? 'Ver Localizacion'
+                        : "Localizacion no disponible"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     onPress={() => deleteImage(index)}
                     style={{ padding: 5, marginLeft: 20 }}
                   >
@@ -266,7 +334,29 @@ export default function ListComponent() {
         )}
 
         {dataVideoArray.length > 0 && viewMode === "V" ? (
-          video != null ? (
+          tempLat !== null && tempLon !== null ? (
+            <>
+              <CameraButton icon="back" color="red" onPress={closeLocation} />
+              <MapView
+                style={style.imagePreview}
+                initialRegion={{
+                  latitude: tempLat,
+                  longitude: tempLon,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: tempLat,
+                    longitude: tempLon,
+                  }}
+                  title={address}
+                  description='Estuviste aqui'
+                />
+              </MapView>
+            </>
+          ) : video != null ? (
             <View>
               <CameraButton
                 icon="back"
@@ -281,9 +371,8 @@ export default function ListComponent() {
                 isLoopign
               />
             </View>
-          ) : (
-            editVisible == true ? (
-              <View style={style.saveScreen}>
+          ) : editVisible == true ? (
+            <View style={style.saveScreen}>
               <CameraButton
                 icon="retweet"
                 color="red"
@@ -296,31 +385,56 @@ export default function ListComponent() {
                 onChangeText={(commentary) => setTempText(commentary)}
               ></TextInput>
             </View>
-            ) : (
-              dataVideoArray.map((item, index) => (
-                <View style={style.mainContainer} key={index}>
-                  <TouchableOpacity onPress={() => openVideo(item)}>
-                    <Text style={style.font}>Video #{index + 1}</Text>
-                    <Image style={style.imageCard} source={{ uri: item.token }} />
-                    <Text style={style.description}>
-                      {" "}
-                      Descripción: {item.comm}
+          ) : (
+            dataVideoArray.map((item, index) => (
+              <View style={style.mainContainer} key={index}>
+                <TouchableOpacity onPress={() => openVideo(item)}>
+                  <Text style={style.font}>Video #{index + 1}</Text>
+                  <Image style={style.imageCard} source={{ uri: item.token }} />
+                  <Text style={style.description}>
+                    {" "}
+                    Descripción: {item.comm}
+                  </Text>
+                </TouchableOpacity>
+                <View style={style.optionButtons}>
+                  <TouchableOpacity
+                    style={{ padding: 5, marginLeft: 20, flexDirection: "row" }}
+                    onPress={() => seelocation(item)}
+                  >
+                    <Entypo
+                      name="location"
+                      size={30}
+                      color={
+                        (item.latitude !== null && item.longitude !== null) ||
+                        (item.latitude !== undefined &&
+                          item.longitude !== undefined)
+                          ? "#44FF3E"
+                          : "gray"
+                      }
+                    />
+                    <Text style={{ fontSize: 18, marginRight: 10 }}>
+                      {(item.latitude !== null && item.longitude !== null) ||
+                      (item.latitude !== undefined &&
+                        item.longitude !== undefined)
+                        ? "Ver localizacion"
+                        : "Localizacion no disponible"}
                     </Text>
                   </TouchableOpacity>
-                  <View style={style.optionButtons}>
-                    <TouchableOpacity
-                      onPress={() => deleteVideo(index)}
-                      style={{ padding: 5, marginLeft: 20 }}
-                    >
-                      <Entypo name="trash" size={30} color="red" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => openEditVideo(index, item.comm)} style={{ padding: 5, marginLeft: 20 }}>
-                      <Entypo name="pencil" size={30} color="red" />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    onPress={() => deleteVideo(index)}
+                    style={{ padding: 5, marginLeft: 20 }}
+                  >
+                    <Entypo name="trash" size={30} color="red" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => openEditVideo(index, item.comm)}
+                    style={{ padding: 5, marginLeft: 20 }}
+                  >
+                    <Entypo name="pencil" size={30} color="red" />
+                  </TouchableOpacity>
                 </View>
-              ))
-            )
+              </View>
+            ))
           )
         ) : (
           <Text></Text>
@@ -393,7 +507,7 @@ const style = StyleSheet.create({
     backgroundColor: "#A8A8A8",
     borderRadius: 15,
     padding: 5,
-    flex: 1
+    flex: 1,
   },
   saveScreen: {
     flexDirection: "row-reverse",
